@@ -7,6 +7,8 @@ import 'package:e_notebook/Widgets/Custom_Loader/Custom_Loader.dart';
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../DBHelper/DBHelper.dart';
+import '../../SharedPreference/SharePref.dart';
+import '../Auth/Login/Login_Screen.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -23,7 +25,7 @@ class _HomeState extends State<Home> {
   Future<void> fetchNotes() async {
     setState(() => isLoading = true);
     final data = await dbHelper.viewNoteData();
-    await Future.delayed( Duration(milliseconds: 800)); // shimmer delay
+    await Future.delayed(Duration(milliseconds: 800)); // shimmer delay
     setState(() {
       noteList = data;
       isLoading = false;
@@ -45,7 +47,7 @@ class _HomeState extends State<Home> {
   Widget buildShimmerGrid() {
     return GridView.builder(
       itemCount: 6,
-      gridDelegate:  SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
@@ -66,7 +68,7 @@ class _HomeState extends State<Home> {
                   child: Container(
                     decoration: BoxDecoration(
                       color: Colors.grey[300],
-                      borderRadius:  BorderRadius.vertical(
+                      borderRadius: BorderRadius.vertical(
                         top: Radius.circular(12),
                       ),
                     ),
@@ -74,7 +76,7 @@ class _HomeState extends State<Home> {
                 ),
                 Container(
                   height: 20,
-                  margin:  EdgeInsets.all(8),
+                  margin: EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: Colors.grey[300],
                     borderRadius: BorderRadius.circular(6),
@@ -93,17 +95,17 @@ class _HomeState extends State<Home> {
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title:  Text("Delete Note"),
-        content:  Text("Are you sure you want to delete this note?"),
+        title: Text("Delete Note"),
+        content: Text("Are you sure you want to delete this note?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child:  Text("Cancel"),
+            child: Text("Cancel"),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child:  Text("Delete"),
+            child: Text("Delete"),
           ),
         ],
       ),
@@ -125,164 +127,182 @@ class _HomeState extends State<Home> {
             onPressed: () async {
               await Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) =>  AddNote()),
+                MaterialPageRoute(builder: (context) => AddNote()),
               );
               fetchNotes();
             },
             icon: Icon(Icons.add),
+          ),
+          IconButton(
+            onPressed: () {
+              logoutUser();
+            },
+            icon: Icon(Icons.logout),
           ),
         ],
       ),
       body: isLoading
           ? CustomLoader()
           : noteList.isEmpty
-          ?  Center(child: Text("No notes available"))
+          ? Center(child: Text("No notes available"))
           : Padding(
-        padding:  EdgeInsets.all(8.0),
-        child: GridView.builder(
-          itemCount: noteList.length,
-          gridDelegate:
-           SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            childAspectRatio: 0.8,
-          ),
-          itemBuilder: (context, index) {
-            final note = noteList[index];
-            final noteId = note[DBHelper.noteId] as int?;
-            final imagePath = note[DBHelper.noteImg] as String?;
-            final title = note[DBHelper.noteTitle] ?? "";
-            // final subtitle = note[DBHelper.noteSubTitle] ?? "";
-            // final description = note[DBHelper.noteDescription] ?? "";
+              padding: EdgeInsets.all(8.0),
+              child: GridView.builder(
+                itemCount: noteList.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                  childAspectRatio: 0.8,
+                ),
+                itemBuilder: (context, index) {
+                  final note = noteList[index];
+                  final noteId = note[DBHelper.noteId] as int?;
+                  final imagePath = note[DBHelper.noteImg] as String?;
+                  final title = note[DBHelper.noteTitle] ?? "";
+                  // final subtitle = note[DBHelper.noteSubTitle] ?? "";
+                  // final description = note[DBHelper.noteDescription] ?? "";
 
-            final hasImage = imagePath != null &&
-                imagePath.isNotEmpty &&
-                File(imagePath).existsSync();
+                  final hasImage =
+                      imagePath != null &&
+                      imagePath.isNotEmpty &&
+                      File(imagePath).existsSync();
 
-            return Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius:  BorderRadius.vertical(
-                        top: Radius.circular(12),
-                      ),
-                      child: hasImage
-                          ? Image.file(File(imagePath),
-                          fit: BoxFit.cover)
-                          : Container(
-                        color: Colors.grey[300],
-                        alignment: Alignment.center,
-                        child:  Icon(
-                          Icons.image_not_supported,
-                          size: 40,
-                          color: Colors.grey,
-                        ),
-                      ),
+                  return Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ),
-                  Padding(
-                    padding:  EdgeInsets.all(8.0),
-                    child: Row(
-                      mainAxisAlignment:
-                      MainAxisAlignment.spaceBetween,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Expanded(
-                          child: Text(
-                            title,
-                            textAlign: TextAlign.center,
-                            style:  TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(12),
                             ),
-                            overflow: TextOverflow.ellipsis,
+                            child: hasImage
+                                ? Image.file(File(imagePath), fit: BoxFit.cover)
+                                : Container(
+                                    color: Colors.grey[300],
+                                    alignment: Alignment.center,
+                                    child: Icon(
+                                      Icons.image_not_supported,
+                                      size: 40,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
                           ),
                         ),
-                        PopupMenuButton<String>(
-                          onSelected: (value) async {
-                            if (value == 'View') {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      ViewNote(note: note),
-                                ),
-                              );
-                            } else if (value == 'Edit') {
-                              final result = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      UpdateNote(note: note),
-                                ),
-                              );
-                              if (result == true) fetchNotes();
-                            } else if (value == 'Delete') {
-                              if (noteId != null) {
-                                confirmDelete(noteId);
-                              } else {
-                                ScaffoldMessenger.of(context)
-                                    .showSnackBar(
-                                   SnackBar(
-                                    content: Text(
-                                        "Error: Note ID is missing"),
+                        Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  title,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
                                   ),
-                                );
-                              }
-                            }
-                          },
-                          itemBuilder: (context) => [
-                             PopupMenuItem(
-                              value: 'View',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.notes,
-                                      color: Color(0xffF9D5E5)),
-                                  SizedBox(width: 8),
-                                  Text("View"),
-                                ],
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
-                             PopupMenuItem(
-                              value: 'Edit',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.edit,
-                                      color: Color(0xffF9D5E5)),
-                                  SizedBox(width: 8),
-                                  Text("Edit"),
+                              PopupMenuButton<String>(
+                                onSelected: (value) async {
+                                  if (value == 'View') {
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            ViewNote(note: note),
+                                      ),
+                                    );
+                                  } else if (value == 'Edit') {
+                                    final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            UpdateNote(note: note),
+                                      ),
+                                    );
+                                    if (result == true) fetchNotes();
+                                  } else if (value == 'Delete') {
+                                    if (noteId != null) {
+                                      confirmDelete(noteId);
+                                    } else {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            "Error: Note ID is missing",
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  PopupMenuItem(
+                                    value: 'View',
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.notes,
+                                          color: Color(0xffF9D5E5),
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text("View"),
+                                      ],
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'Edit',
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.edit,
+                                          color: Color(0xffF9D5E5),
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text("Edit"),
+                                      ],
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'Delete',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.delete, color: Colors.red),
+                                        SizedBox(width: 8),
+                                        Text("Delete"),
+                                      ],
+                                    ),
+                                  ),
                                 ],
+                                icon: Icon(Icons.more_vert),
                               ),
-                            ),
-                             PopupMenuItem(
-                              value: 'Delete',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete,
-                                      color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text("Delete"),
-                                ],
-                              ),
-                            ),
-                          ],
-                          icon:  Icon(Icons.more_vert),
+                            ],
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                  );
+                },
               ),
-            );
-          },
-        ),
-      ),
+            ),
+    );
+  }
+
+  Future<void> logoutUser() async {
+    await SharedPref.clearPreferences();
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginScreen()),
     );
   }
 }
